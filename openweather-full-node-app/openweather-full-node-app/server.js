@@ -156,6 +156,6 @@ app.get('/api/weather/all', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`====================================================`);
   console.log(`  OpenWeather Node.js 서버 실행 완료`);
-  console.log(`  주소: <http://localhost>:${PORT}`);
+  console.log(`  주소: http://localhost:${PORT}`);
   console.log(`====================================================`);
 });
