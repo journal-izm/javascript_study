@@ -2,8 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 
+
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8081;
+const API_KEY = process.env.OPENWEATHER_API_KEY?.trim();
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
@@ -132,7 +134,7 @@ app.get('/api/weather/all', async (req, res) => {
         .then((r) => {
           if (!r.ok) throw new Error(`${city.name} 요청 실패 (${r.status})`);
           return r.json();
-        })
+        })~``
         .then((data) => formatWeatherData(city.name, data));
     });
 
@@ -156,6 +158,6 @@ app.get('/api/weather/all', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`====================================================`);
   console.log(`  OpenWeather Node.js 서버 실행 완료`);
-  console.log(`  주소: <http://localhost>:${PORT}`);
+  console.log(`  주소: http://localhost:${PORT}`);
   console.log(`====================================================`);
 });

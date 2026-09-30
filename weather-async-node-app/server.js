@@ -89,7 +89,7 @@ app.get('/api/weather', async (req, res) => {
     if (provider === 'openweathermap' && apiKey && apiKey !== 'your_openweather_api_key_here') {
       result = await fetchFromOpenWeather(city, apiKey, controller.signal);
     } else {
-      result = await fetchFromOpenMeteo(city, controller.signal);
+      result = await fetchFromOpenMeteo(city, controller.signal);``
     }
 
     clearTimeout(timeoutId);
@@ -100,7 +100,7 @@ app.get('/api/weather', async (req, res) => {
       return res.status(504).json({ success: false, error: '날씨 서버 응답 시간 초과 (5초 타임아웃)' });
     }
     return res.status(500).json({ success: false, error: error.message });
-  }
+  }`
 });
 
 // -------------------------------------------------------------
