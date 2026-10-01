@@ -134,7 +134,7 @@ app.get('/api/weather/all', async (req, res) => {
         .then((r) => {
           if (!r.ok) throw new Error(`${city.name} 요청 실패 (${r.status})`);
           return r.json();
-        })~``
+        })
         .then((data) => formatWeatherData(city.name, data));
     });
 
