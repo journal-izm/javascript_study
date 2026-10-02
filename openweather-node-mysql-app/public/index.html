@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenWeather + Node.js + MySQL</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body { background: #f1f5f9; }
+    .panel { background: white; border-radius: 14px; padding: 24px; margin-bottom: 18px; }
+    #logBox { background: #0f172a; color: #38bdf8; padding: 16px; min-height: 170px; white-space: pre-wrap; font: 13px Consolas, monospace; }
+  </style>
+</head>
+<body class="py-5">
+  <main class="container" style="max-width:1100px">
+    <section class="panel bg-dark text-white">
+      <h1 class="h3">OpenWeather + Node.js + MySQL</h1>
+      <p class="mb-0">Open API → Node.js → MySQL → JOIN → GROUP BY → 분석</p>
+    </section>
+
+    <section class="panel">
+      <h2 class="h5">1. OpenWeather 데이터 수집</h2>
+      <select id="citySelect" class="form-select mb-3">
+        <option value="seoul">서울</option>
+        <option value="busan">부산</option>
+        <option value="jeju">제주</option>
+        <option value="gwangju">광주</option>
+      </select>
+      <div class="d-flex flex-wrap gap-2">
+        <button id="btnWeather" class="btn btn-outline-primary">날씨만 조회</button>
+        <button id="btnCollect" class="btn btn-primary">날씨 조회 + DB 저장</button>
+        <button id="btnHealth" class="btn btn-outline-secondary">MySQL 연결 확인</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="h5">2. 관계형 데이터 확인</h2>
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <button id="btnJoin" class="btn btn-success">JOIN 결과</button>
+        <button id="btnSummary" class="btn btn-warning">GROUP BY 집계</button>
+        <button id="btnWind" class="btn btn-info">풍속 TOP 5</button>
+      </div>
+      <div id="resultArea" class="table-responsive">버튼을 눌러 결과를 확인하세요.</div>
+    </section>
+
+    <section class="panel">
+      <h2 class="h5">3. 기사 근거 데이터 추적</h2>
+      <div class="input-group">
+        <input id="articleId" type="number" min="1" value="1" class="form-control" placeholder="article_id">
+        <button id="btnSource" class="btn btn-dark">근거 데이터 확인</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="h5">실행 로그</h2>
+      <div id="logBox">&gt; 대기 중</div>
+    </section>
+  </main>
+
+  <script>
+    const citySelect = document.getElementById('citySelect');
+    const resultArea = document.getElementById('resultArea');
+    const logBox = document.getElementById('logBox');
+
+    function log(message) {
+      logBox.textContent += `\n[${new Date().toLocaleTimeString()}] ${message}`;
+    }
+
+    async function request(url, options = {}) {
+      const response = await fetch(url, options);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+      return data;
+    }
+
+    function showObject(obj) {
+      resultArea.innerHTML = `<pre class="bg-dark text-white p-3 rounded">${escapeHtml(JSON.stringify(obj, null, 2))}</pre>`;
+    }
+
+    function showTable(rows) {
+      if (!rows.length) {
+        resultArea.innerHTML = '<p class="text-muted">데이터가 없습니다.</p>';
+        return;
+      }
+
+      const keys = Object.keys(rows[0]);
+      resultArea.innerHTML = `
+        <table class="table table-bordered table-hover align-middle">
+          <thead class="table-light"><tr>${keys.map(k => `<th>${escapeHtml(k)}</th>`).join('')}</tr></thead>
+          <tbody>
+            ${rows.map(row => `<tr>${keys.map(k => `<td>${escapeHtml(row[k] ?? '')}</td>`).join('')}</tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    document.getElementById('btnHealth').addEventListener('click', async () => {
+      try {
+        const result = await request('/api/health');
+        showObject(result);
+        log('MySQL 연결 확인 완료');
+      } catch (error) { log(`오류: ${error.message}`); alert(error.message); }
+    });
+
+    document.getElementById('btnWeather').addEventListener('click', async () => {
+      try {
+        const city = citySelect.value;
+        const result = await request(`/api/weather?city=${city}`);
+        showObject(result.data);
+        log(`${city} 날씨 조회 완료`);
+      } catch (error) { log(`오류: ${error.message}`); alert(error.message); }
+    });
+
+    document.getElementById('btnCollect').addEventListener('click', async () => {
+      try {
+        const city = citySelect.value;
+        const result = await request(`/api/weather/collect?city=${city}`, { method: 'POST' });
+        showObject(result);
+        log(`DB 저장 완료: weather_id=${result.weatherId}, article_id=${result.articleId}`);
+      } catch (error) { log(`오류: ${error.message}`); alert(error.message); }
+    });
+
+    document.getElementById('btnJoin').addEventListener('click', async () => {
+      try {
+        const result = await request('/api/db/join');
+        showTable(result.data);
+        log(`JOIN 결과 ${result.count}건`);
+      } catch (error) { log(`오류: ${error.message}`); alert(error.message); }
+    });
+
+    document.getElementById('btnSummary').addEventListener('click', async () => {
+      try {
+        const result = await request('/api/db/summary');
+        showTable(result.data);
+        log(`GROUP BY 결과 ${result.count}건`);
+      } catch (error) { log(`오류: ${error.message}`); alert(error.message); }
+    });
+
+    document.getElementById('btnWind').addEventListener('click', async () => {
+      try {
+        const result = await request('/api/db/wind-top5');
+        showTable(result.data);
+        log(`풍속 TOP 5 조회 완료`);
+      } catch (error) { log(`오류: ${error.message}`); alert(error.message); }
+    });
+
+    document.getElementById('btnSource').addEventListener('click', async () => {
+      try {
+        const id = document.getElementById('articleId').value;
+        const result = await request(`/api/articles/${id}/source`);
+        showObject(result.data);
+        log(`article_id=${id} 근거 데이터 확인 완료`);
+      } catch (error) { log(`오류: ${error.message}`); alert(error.message); }
+    });
+  </script>
+</body>
+</html>
